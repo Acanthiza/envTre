@@ -9,9 +9,10 @@
 
   rr_filt <- rr_lists %>%
     filter_list_df(taxa_col = "taxa"
-                   , geo_levels = context_cols[context_cols %in% geo_cols]
-                   , tax_levels = context_cols[context_cols %in% taxa_cols]
-                   , time_levels = context_cols[context_cols %in% time_cols]
+                   , geo_levels = context_rr_filt[context_rr_filt %in% geo_cols]
+                   , tax_levels = context_rr_filt[context_rr_filt %in% taxa_cols]
+                   , time_levels = context_rr_filt[context_rr_filt %in% time_cols]
+                   , analysis_levels = context_rr_analysis
                    , min_years = 0
                    , min_span = 5
                    )
@@ -20,21 +21,20 @@
   #------Absences from cooccurs-------
 
   rr_filt_absences <- rr_filt %>%
-    dplyr::mutate(p = 1) %>%
-    dplyr::bind_rows(rr_filt %>%
-                       dplyr::distinct(across(any_of(context_cols))) %>%
-                       dplyr::inner_join(taxa_cooccur) %>%
-                       dplyr::rename(indicates_absence = taxa
-                                     , taxa = sp2_name
-                                     ) %>%
-                       dplyr::inner_join(rr_filt) %>%
-                       dplyr::mutate(p = 0) %>%
-                       dplyr::select(-taxa) %>%
-                       dplyr::rename(taxa = indicates_absence)
+    # sp2_name are taxa that indicate absence
+    dplyr::inner_join(taxa_cooccur %>%
+                        dplyr::rename(taxa = sp2_name)
+                      ) %>%
+    # sometimes there is no taxa indicating absence. This excludes those (not optimal...)
+    #dplyr::filter(!is.na(sp1_name)) %>%
+    dplyr::select(-taxa) %>%
+    dplyr::distinct() %>%
+    # Now join all the sp2_name
+    dplyr::rename(taxa = sp1_name) %>%
+    dplyr::left_join(rr_filt %>%
+                       dplyr::mutate(p = 1)
                      ) %>%
-    dplyr::group_by(across(any_of(context_rr_analysis))) %>%
-    dplyr::summarise(p = max(p)) %>%
-    dplyr::ungroup()
+    dplyr::mutate(p = if_else(is.na(p), 0, 1))
 
 
   #-------Data prep---------
@@ -48,7 +48,9 @@
                      ) %>%
     dplyr::ungroup() %>%
     dplyr::mutate(prop = success/trials) %>%
-    tidyr::nest(data = -any_of(c())) %>%
+    tidyr::nest(data = -any_of(taxa_cols)) %>%
+    dplyr::mutate(successes = map_dbl(data, ~sum(.$success))) %>%
+    dplyr::filter(successes > min_abs_sites) %>%
     dplyr::left_join(taxa_taxonomy %>%
                        dplyr::select(taxa
                                      , common
@@ -69,7 +71,9 @@
       dplyr::distinct(across(any_of(c(geo1,geo2)))) %>%
       nrow()
 
-    cells <- length(unique(data$cell))
+    grid_cells <- data %>%
+      dplyr::distinct(across(contains("grid"))) %>%
+      nrow()
 
     # GAM
     if(geos > 1) {
@@ -84,7 +88,7 @@
                                    )
                         , data = data
                         , family = binomial()
-                        , random = ~(1|cell)
+                        , random = ~(1|grid_l)
                         , chains = if(testing) test_chains else use_chains
                         , iter = if(testing) test_iter else use_iter
                         )
@@ -93,7 +97,7 @@
 
       mod <- stan_gamm4(cbind(success,trials-success) ~ s(year, k = 4, bs = "ts")
                             , data = data
-                            , random = if(cells > 1) formula(~ (1|cell)) else NULL
+                            , random = if(grid_cells > 1) formula(~ (1|grid_l)) else NULL
                             , family = binomial()
                             , chains = if(testing) test_chains else use_chains
                             , iter = if(testing) test_iter else use_iter
@@ -155,8 +159,17 @@
                     , doof$mod_path
                     , doof$type
                     )
-               , mod_explore
-               , respVar = "prop"
+               , explore_mod
+               , resp_var = "prop"
+               , exp_var = c(toi, geo2)
+               , max_levels = 30
+               , draws = 200
+               , post_groups = c("taxa"
+                                 , "common"
+                                 , "list_length"
+                                 , "year"
+                                 , geo2
+                                 )
                )
 
   timer$stop("rr", comment = paste0("Reporting rate models run for "

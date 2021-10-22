@@ -47,7 +47,7 @@
     context_cols <- c(toi, visit_cols)
 
     # cooccur
-    context_cooccur <- c(time_cols, toi, geo1)
+    context_cooccur <- c(toi, geo1, geo2, geo3)
 
     # rr
     context_rr_filt <- context_cols %>%

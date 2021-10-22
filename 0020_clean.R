@@ -251,6 +251,5 @@
     dplyr::select(where(negate(is.list)), pair) %>%
     tidyr::unnest(cols = c(pair)) %>%
     dplyr::filter(p_gt < 0.05) %>%
-    dplyr::rename(taxa = sp1_name) %>%
-    dplyr::select(any_of(context_cols), taxa, sp2_name)
+    dplyr::select(any_of(context_cols), sp1_name, sp2_name)
 
