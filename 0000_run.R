@@ -7,6 +7,11 @@
 
   #---------Overall settings---------
 
+  # testing?
+
+    testing <- TRUE
+
+
   # What is the area of interest (AOI) for this analysis?
     aoi_polys <- "sa"
     aoi_name <- "SA" # used in output paths
@@ -65,7 +70,10 @@
       grep("grid_s", ., value = TRUE, invert = TRUE)
 
     # all
-    random <- geo3
+    context_res <- context_cols %>%
+      grep("grid", ., value = TRUE, invert = TRUE) %>%
+      c("taxa", "common")
+
 
 
   # Maximum number of cores
@@ -126,6 +134,16 @@
 
     use_chains <- 5
     use_iter <- 3000
+
+    # Years at which to predict (and compare change)
+    test_years <- tibble::tribble(~type, ~year
+                                 , "reference", 1995
+                                 , "recent", 2020
+                                 ) %>%
+      tidyr::unnest(cols = c(year))
+
+    reference <- test_years$year[test_years$type == "reference"]
+    recent <- test_years$year[test_years$type == "recent"]
 
 
   #----------RUN---------

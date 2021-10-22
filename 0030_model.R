@@ -164,18 +164,5 @@
                , exp_var = c(toi, geo2)
                , max_levels = 30
                , draws = 200
-               , post_groups = c("taxa"
-                                 , "common"
-                                 , "list_length"
-                                 , "year"
-                                 , geo2
-                                 )
+               , context = context_res
                )
-
-  timer$stop("rr", comment = paste0("Reporting rate models run for "
-                                    ,nrow(taxaModsRR)
-                                    ," taxa, of which "
-                                    ,nrow(todo)
-                                    ," were new"
-                                    )
-             )

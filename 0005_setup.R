@@ -42,12 +42,6 @@
        , source
        )
 
-
-  #--------commit-------
-
-  git_commit_env(basename(out_dir))
-
-
   #----------Project------------
 
   # no scientific notation for numbers
@@ -98,7 +92,23 @@
     dplyr::mutate(across(where(is.character),~gsub("Wilur|Wilu\\?",paste0("Wilu","\u1E5F"),.)))
 
 
-
+  lulikelihood <- tribble(
+    ~likelihood, ~maxVal
+    , "Exceptionally unlikely", 0.01
+    , "Extremely unlikely", 0.05
+    , "Very unlikely", 0.1
+    , "Unlikely", 1/3
+    , "About as likely as not", 2/3
+    , "Likely", 0.9
+    , "Very likely", 0.95
+    , "Extremely likely", 0.99
+    , "Virtually certain", 1
+    ) %>%
+    dplyr::mutate(likelihood = fct_inorder(likelihood)
+                  , range = cut(maxVal
+                                , breaks = c(0,.$maxVal)
+                                )
+                  )
 
 
   #----------Maps-----------
@@ -238,9 +248,9 @@
   good_iter <- 2000
 
 
-  #------Cluster------
+  #------Model------
 
-
+  quant_probs <- c(0.05, 0.5, 0.95)
 
 
 #----------Parallel----------
