@@ -100,7 +100,7 @@
 
   bio_rel <- filter_spat_rel(bio_cell
                               , dist_col = "rel_dist"
-                              , context = context_cols
+                              , context = visit_cols
                               , dist = use_rel_dist
                               , over_ride = list(data_name = include_data_name
                                                  , survey_nr = include_survey_nr
@@ -116,7 +116,7 @@
 
   bio_taxa <- filter_taxa(bio_rel
                           , taxa_col = "original_name"
-                          , context = context_cols
+                          , context = visit_cols
                           , extra_cols = NULL
                           , target_rank = "species"
                           , poor = species_filt
@@ -129,7 +129,7 @@
   #---------Singletons---------
 
   bio_single <- filter_counts(bio_taxa
-                              , context = context_cols
+                              , context = visit_cols
                               , thresh = 1
                               ) %>%
     add_time_stamp()
@@ -161,7 +161,7 @@
   #----------Effort---------
 
   effort_mod <- make_effort_mod_cat(bio_geo
-                                    , context = context_cols
+                                    , context = visit_cols
                                     , cat_cols = c(geo2, toi)
                                     )
 
@@ -177,16 +177,18 @@
 
   bio_tidy <- bio_effort %>%
     filter_counts(context = visit_cols) %>%
-    dplyr::distinct(taxa, across(any_of(context_cols))) %>%
+    dplyr::distinct(taxa
+                    , across(any_of(visit_cols))
+                    ) %>%
     add_time_stamp()
 
   cells_tidy <- bio_tidy %>%
-    dplyr::count(across(all_of(context_cols))
+    dplyr::count(across(all_of(visit_cols))
                  , name = "sr"
                  )
 
   data_name_tidy <- bio_cell %>%
-    dplyr::distinct(across(any_of(context_cols))
+    dplyr::distinct(across(any_of(visit_cols))
                     , data_name
                     , survey_nr
                     , survey
@@ -222,9 +224,10 @@
   #-------Co-occurrence
 
   bio_cooccur <- bio_tidy %>%
-    tidyr::nest(data = -c(context_cooccur)) %>%
-    dplyr::mutate(n_lists = map_dbl(data, . %>%
-                                      dplyr::distinct(across(any_of(context_cols))) %>%
+    tidyr::nest(data = -c(toi, geo1, geo2)) %>%
+    dplyr::mutate(n_lists = map_dbl(data
+                                    , . %>%
+                                      dplyr::distinct(across(any_of(visit_cols))) %>%
                                       nrow()
                                      )
                   , n_taxa = map_dbl(data,~n_distinct(.$taxa))
@@ -240,7 +243,7 @@
 
     dplyr::mutate(cooccur = future_map(data
                                        , make_cooccur
-                                       , context = context_cols
+                                       , context = visit_cols
                                        , spp_names = TRUE
                                        , thresh = FALSE
                                        )
@@ -251,5 +254,5 @@
     dplyr::select(where(negate(is.list)), pair) %>%
     tidyr::unnest(cols = c(pair)) %>%
     dplyr::filter(p_gt < 0.05) %>%
-    dplyr::select(any_of(context_cols), sp1_name, sp2_name)
+    dplyr::select(any_of(visit_cols), sp1_name, sp2_name)
 

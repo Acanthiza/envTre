@@ -1,7 +1,7 @@
 
 
   new_run <- TRUE
-  out_dir <- NA # overwritten if newRun == TRUE
+  out_dir <- "out/sa_50_class/runs/2021-10-22-1607" # overwritten if newRun == TRUE
 
   library(magrittr)
 
@@ -13,10 +13,10 @@
 
 
   # What is the area of interest (AOI) for this analysis?
-    aoi_polys <- "sa"
-    aoi_name <- "SA" # used in output paths
-    aoi_fullname <- "South Australia"
-    aoi_col <- "State"
+    aoi_polys <- "ibra_sub"
+    aoi_name <- "MDD" # used in output paths
+    aoi_fullname <- "Murray-Darling Depression IBRA Region"
+    aoi_col <- "IBRA_REG_C"
     poly_buf <- if(aoi_name == "KI") 5000 else 50000
 
 
@@ -43,36 +43,10 @@
     time_cols <- c("year")
 
     # Visit
-    visit_cols <- c(time_cols, unname(geo_cols))
+    visit_cols <- c(time_cols, toi, unname(geo_cols))
 
     # Taxa
     taxa_cols <- c("original_name", "taxa", toi)
-
-    # Context - doesn't include 'taxa'
-    context_cols <- c(toi, visit_cols)
-
-    # cooccur
-    context_cooccur <- c(toi, geo1, geo2, geo3)
-
-    # rr
-    context_rr_filt <- context_cols %>%
-      grep("grid", ., value = TRUE, invert = TRUE)
-
-    context_rr_analysis <- context_cols %>%
-      grep("grid_s", ., value = TRUE, invert = TRUE)
-
-    # ll
-    context_ll <- context_cols %>%
-      grep("grid_s", ., value = TRUE, invert = TRUE)
-
-    # occ
-    context_occ <- context_cols %>%
-      grep("grid_s", ., value = TRUE, invert = TRUE)
-
-    # all
-    context_res <- context_cols %>%
-      grep("grid", ., value = TRUE, invert = TRUE) %>%
-      c("taxa", "common")
 
 
 
@@ -80,9 +54,7 @@
     max_cores <- 14
 
   # Maximum allowed spatial reliability
-    use_rel_dist <- 100
-
-
+    use_rel_dist <- 1000
 
 
   #------Import---------
@@ -137,8 +109,8 @@
 
     # Years at which to predict (and compare change)
     test_years <- tibble::tribble(~type, ~year
-                                 , "reference", 1995
-                                 , "recent", 2020
+                                 , "reference", 2000
+                                 , "recent", 2015
                                  ) %>%
       tidyr::unnest(cols = c(year))
 

@@ -3,18 +3,18 @@
   #-------Filter for analysis---------
 
   rr_lists <- bio_tidy %>%
-    add_list_length(context = context_cols
+    add_list_length(context = visit_cols
                     , create_list_col = TRUE
                     )
 
   rr_filt <- rr_lists %>%
     filter_list_df(taxa_col = "taxa"
-                   , geo_levels = context_rr_filt[context_rr_filt %in% geo_cols]
-                   , tax_levels = context_rr_filt[context_rr_filt %in% taxa_cols]
-                   , time_levels = context_rr_filt[context_rr_filt %in% time_cols]
-                   , analysis_levels = context_rr_analysis
+                   , geo_levels = c(geo1, geo2)
+                   , tax_levels = c("taxa", toi)
+                   , time_levels = "year"
                    , min_years = 0
-                   , min_span = 5
+                   , min_year = min(test_years$year)
+                   , max_year = max(test_years$year)
                    )
 
 
@@ -25,12 +25,11 @@
     dplyr::inner_join(taxa_cooccur %>%
                         dplyr::rename(taxa = sp2_name)
                       ) %>%
-    # sometimes there is no taxa indicating absence. This excludes those (not optimal...)
-    #dplyr::filter(!is.na(sp1_name)) %>%
     dplyr::select(-taxa) %>%
     dplyr::distinct() %>%
     # Now join all the sp2_name
     dplyr::rename(taxa = sp1_name) %>%
+    dplyr::filter(!is.na(taxa)) %>%
     dplyr::left_join(rr_filt %>%
                        dplyr::mutate(p = 1)
                      ) %>%
@@ -41,12 +40,18 @@
 
   dat <- rr_filt_absences %>%
     dplyr::group_by(taxa
-                    , across(any_of(context_rr_analysis))
+                    , across(any_of(c(toi, "year", geo1, geo2, geo3)))
                     ) %>%
     dplyr::summarise(success = sum(p)
                      , trials = n()
                      ) %>%
     dplyr::ungroup() %>%
+    dplyr::group_by(taxa
+                    , across(any_of(c(toi, geo1, geo2)))
+                    ) %>%
+    dplyr::mutate(tot_records = sum(success)) %>%
+    dplyr::ungroup() %>%
+    dplyr::filter(tot_records >= min_abs_sites) %>%
     dplyr::mutate(prop = success/trials) %>%
     tidyr::nest(data = -any_of(taxa_cols)) %>%
     dplyr::mutate(successes = map_dbl(data, ~sum(.$success))) %>%
@@ -57,65 +62,13 @@
                                      )
                      )
 
-  #------Model function--------
 
-  rr <- function(taxa
-                 , data
-                 ) {
-
-    print(taxa)
-
-    out_file <- fs::path(out_dir,paste0("reporting-rate_Mod_",taxa,".rds"))
-
-    geos <- data %>%
-      dplyr::distinct(across(any_of(c(geo1,geo2)))) %>%
-      nrow()
-
-    grid_cells <- data %>%
-      dplyr::distinct(across(contains("grid"))) %>%
-      nrow()
-
-    # GAM
-    if(geos > 1) {
-
-      mod <- stan_gamm4(as.formula(paste0("cbind(success,trials - success) ~ "
-                                          , "s(year, k = 4, bs = 'ts') +"
-                                          , geo2
-                                          , " + s(year, k = 4, by = "
-                                          , geo2
-                                          , ", bs = 'ts')"
-                                          )
-                                   )
-                        , data = data
-                        , family = binomial()
-                        , random = ~(1|grid_l)
-                        , chains = if(testing) test_chains else use_chains
-                        , iter = if(testing) test_iter else use_iter
-                        )
-
-    } else {
-
-      mod <- stan_gamm4(cbind(success,trials-success) ~ s(year, k = 4, bs = "ts")
-                            , data = data
-                            , random = if(grid_cells > 1) formula(~ (1|grid_l)) else NULL
-                            , family = binomial()
-                            , chains = if(testing) test_chains else use_chains
-                            , iter = if(testing) test_iter else use_iter
-                            )
-
-    }
-
-    write_rds(mod,out_file)
-
-  }
-
-
- #------Run models-------
-
+  #------Run models-------
 
   # Check if rr models have been run - run if not
   todo <- dat %>%
-    dplyr::mutate(out_file = fs::path(out_dir,paste0("reporting-rate_Mod_",taxa,".rds"))
+    dplyr::sample_n(use_cores) %>% # TESTING
+    dplyr::mutate(out_file = fs::path(out_dir,paste0("reporting-rate_mod_",taxa,".rds"))
                   , done = map_lgl(out_file
                                    , file.exists
                                    )
@@ -131,12 +84,24 @@
       future_pwalk(list(todo$taxa[!todo$done]
                         , todo$data[!todo$done]
                         )
-                   , rr
+                   , make_rr_model
+                   , geo_cols = c(geo1, geo2)
+                   , out_path = out_dir
+                   , chains = if(testing) test_chains else use_chains
+                   , iter = if(testing) test_iter else use_iter
                    )
 
     } else {
 
-      pwalk(list(todo$taxa,todo$data),rr)
+      pwalk(list(todo$taxa[!todo$done]
+                 , todo$data[!todo$done]
+                 )
+            , make_rr_model
+            , geo_cols = c(geo1, geo2)
+            , out_path = out_dir
+            , chains = if(testing) test_chains else use_chains
+            , iter = if(testing) test_iter else use_iter
+            )
 
     }
 
@@ -147,7 +112,7 @@
   #--------Explore models-----------
 
   mods_rr <- dat %>%
-    dplyr::mutate(mod_path = fs::path(out_dir,paste0("reporting-rate_Mod_",taxa,".rds"))) %>%
+    dplyr::mutate(mod_path = fs::path(out_dir,paste0("reporting-rate_mod_",taxa,".rds"))) %>%
     dplyr::filter(file.exists(mod_path)) %>%
     dplyr::mutate(type = "Reporting rate")
 
@@ -164,5 +129,6 @@
                , exp_var = c(toi, geo2)
                , max_levels = 30
                , draws = 200
-               , context = context_res
+               , post_groups = c("year", geo1, geo2)
+               , re_run = TRUE
                )
