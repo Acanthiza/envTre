@@ -49,7 +49,7 @@
 
   # Out directories
   out_aoi <- path("out"
-                  ,paste0(aoi_name
+                  ,paste0(paste0(use_aoi_name, collapse = "-")
                           , "_"
                           , poly_buf/1000
                           , "_"

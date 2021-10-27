@@ -3,19 +3,22 @@
   #--------Polygons-----------
 
   poly_aois <- ls() %>%
-    tibble::enframe(name = NULL, value = "objName") %>%
-    dplyr::mutate(obj = map(objName,get)
+    tibble::enframe(name = NULL, value = "obj_name") %>%
+    dplyr::mutate(obj = map(obj_name,get)
                   , cls = map(obj,class)
                   ) %>%
     tidyr::unnest(cols = c(cls)) %>%
     dplyr::filter(cls == "sf"
-                  , !objName %in% c("aoi","sa")
+                  , !obj_name %in% c("aoi","sa")
                   ) %>%
     dplyr::mutate(poly_aoi = map(obj,st_filter,aoi)
-                  , poly_aoi_name = paste0(objName,"_aoi")
+                  , poly_aoi_name = paste0(obj_name,"_aoi")
                   )
 
-  walk2(poly_aois$poly_aoi_name,poly_aois$poly_aoi,assign,envir = globalenv())
+  walk2(poly_aois$poly_aoi_name
+        , poly_aois$poly_aoi
+        , assign,envir = globalenv()
+        )
 
 
   #---------make taxonomy--------
@@ -61,6 +64,7 @@
                     , .
                     ) %>%
     dplyr::rename(grid_l = cell) %>%
+    dplyr::filter(!is.na(across(contains("grid")))) %>%
     add_time_stamp()
 
 

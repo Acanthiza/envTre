@@ -42,20 +42,20 @@
     dplyr::group_by(taxa
                     , across(any_of(c(toi, "year", geo1, geo2, geo3)))
                     ) %>%
-    dplyr::summarise(success = sum(p)
+    dplyr::summarise(success = sum(p, na.rm = TRUE)
                      , trials = n()
                      ) %>%
     dplyr::ungroup() %>%
     dplyr::group_by(taxa
                     , across(any_of(c(toi, geo1, geo2)))
                     ) %>%
-    dplyr::mutate(tot_records = sum(success)) %>%
+    dplyr::mutate(tot_records = sum(success, na.rm = TRUE)) %>%
     dplyr::ungroup() %>%
     dplyr::filter(tot_records >= min_abs_sites) %>%
     dplyr::mutate(prop = success/trials) %>%
     tidyr::nest(data = -any_of(taxa_cols)) %>%
-    dplyr::mutate(successes = map_dbl(data, ~sum(.$success))) %>%
-    dplyr::filter(successes > min_abs_sites) %>%
+    # dplyr::mutate(successes = map_dbl(data, ~sum(.$success))) %>%
+    # dplyr::filter(successes > min_abs_sites) %>%
     dplyr::left_join(taxa_taxonomy %>%
                        dplyr::select(taxa
                                      , common
@@ -67,7 +67,7 @@
 
   # Check if rr models have been run - run if not
   todo <- dat %>%
-    dplyr::sample_n(use_cores) %>% # TESTING
+    {if(testing) (.) %>% dplyr::filter(taxa %in% test_taxa$taxa) else (.)} %>%
     dplyr::mutate(out_file = fs::path(out_dir,paste0("reporting-rate_mod_",taxa,".rds"))
                   , done = map_lgl(out_file
                                    , file.exists
@@ -83,6 +83,7 @@
 
       future_pwalk(list(todo$taxa[!todo$done]
                         , todo$data[!todo$done]
+                        , todo$out_file[!todo$done]
                         )
                    , make_rr_model
                    , geo_cols = c(geo1, geo2)

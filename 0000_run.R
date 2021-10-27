@@ -14,10 +14,11 @@
 
   # What is the area of interest (AOI) for this analysis?
     aoi_polys <- "ibra_sub"
-    aoi_name <- "MDD" # used in output paths
-    aoi_fullname <- "Murray-Darling Depression IBRA Region"
+    aoi_name <- c("KAN", "FLB", "EYB", "MDD", "SVP", "NCP", "RIV") # used in output paths
+    use_aoi_name <- "Ag"
+    aoi_fullname <- "Flinders-Lofty Block IBRA Region"
     aoi_col <- "IBRA_REG_C"
-    poly_buf <- if(aoi_name == "KI") 5000 else 50000
+    poly_buf <- 0
 
 
   # What is the taxonomy of interest (TOI) for this analysis?
