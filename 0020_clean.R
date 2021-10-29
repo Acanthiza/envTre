@@ -167,6 +167,8 @@
   effort_mod <- make_effort_mod_cat(bio_geo
                                     , context = visit_cols
                                     , cat_cols = c(geo2, toi)
+                                    , iter = if(testing) test_iter else use_iter
+                                    , chains = if(testing) test_chains else use_chains
                                     )
 
   bio_effort <- bio_geo %>%

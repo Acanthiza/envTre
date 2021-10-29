@@ -87,7 +87,6 @@
                         )
                    , make_rr_model
                    , geo_cols = c(geo1, geo2)
-                   , out_path = out_dir
                    , chains = if(testing) test_chains else use_chains
                    , iter = if(testing) test_iter else use_iter
                    )

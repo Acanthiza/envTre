@@ -85,7 +85,6 @@
                         )
                    , make_ll_model
                    , geo_cols = c(geo1, geo2)
-                   , out_path = out_dir
                    , chains = if(testing) test_chains else use_chains
                    , iter = if(testing) test_iter else use_iter
                    )
@@ -94,13 +93,13 @@
 
       pwalk(list(todo$taxa[!todo$done]
                  , todo$data[!todo$done]
+                 , todo$out_file[!todo$done]
                  )
-      , make_ll_model
-      , geo_cols = c(geo1, geo2)
-      , out_path = out_dir
-      , chains = if(testing) test_chains else use_chains
-      , iter = if(testing) test_iter else use_iter
-      )
+            , make_ll_model
+            , geo_cols = c(geo1, geo2)
+            , chains = if(testing) test_chains else use_chains
+            , iter = if(testing) test_iter else use_iter
+            )
 
     }
 
