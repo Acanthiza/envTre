@@ -1,7 +1,7 @@
 
 
   new_run <- TRUE
-  out_dir <- "out/sa_50_class/runs/2021-10-22-1607" # overwritten if newRun == TRUE
+  out_dir <- "out/sa_50_class/runs/2021-10-25-0855" # overwritten if newRun == TRUE
 
   library(magrittr)
 
@@ -14,10 +14,22 @@
 
   # What is the area of interest (AOI) for this analysis?
     aoi_polys <- "ibra_sub"
-    aoi_name <- c("KAN", "FLB", "EYB", "MDD", "SVP", "NCP", "RIV") # used in output paths
-    use_aoi_name <- "Ag"
-    aoi_fullname <- "Flinders-Lofty Block IBRA Region"
+
+    # Ag
+    #aoi_name <- c("KAN", "FLB", "EYB", "MDD", "SVP", "NCP", "RIV")
+
+    # SA
+    aoi_name <- c("SSD", "STP", "NCP", "NUL"
+                  , "SVP", "RIV", "CER", "MDD"
+                  , "FLB", "HAM", "KAN", "CHC"
+                  , "GVD", "BHC", "FIN", "EYB"
+                  , "GAW"
+                  )
+
+    use_aoi_name <- "SA"      # used in output paths
+    aoi_fullname <- "South Australia"
     aoi_col <- "IBRA_REG_C"
+    aoi_type <- "IBRA Regions"
     poly_buf <- 0
 
 
@@ -38,7 +50,7 @@
     geo3 <- "grid_l" # large cell
     geo4 <- "grid_s" # small cell
 
-    geo_cols <- unlist(mget(ls(pattern = "geo\\d{1}")))
+    geo_cols <- c(location_cols, unlist(mget(ls(pattern = "geo\\d{1}"))))
 
     # Time
     time_cols <- c("year")
@@ -47,7 +59,7 @@
     visit_cols <- c(time_cols, toi, unname(geo_cols))
 
     # Taxa
-    taxa_cols <- c("original_name", "taxa", toi)
+    taxa_cols <- c("original_name", "taxa", "common", toi)
 
 
 
@@ -79,14 +91,13 @@
 
   #--------Report------------
 
-    do_data_summary <- TRUE
+    do_data_summary <- T
+    do_clean <- T
+    do_include_effort <- T
+    do_cooccur <- T
 
-    do_dend <- TRUE
-
-    do_include_effort <- TRUE
-
-
-    make_book <- TRUE
+    make_report <- TRUE
+    test_rmd <- FALSE
 
     make_slides <- FALSE
 
@@ -122,7 +133,7 @@
   #----------RUN---------
 
     run_from <- 0
-    run_to <- 100
+    run_to <- 20
 
     dir() %>%
       grep("^\\d{4}_.*\\.R$",.,value=TRUE) %>%

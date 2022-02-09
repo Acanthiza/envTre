@@ -12,6 +12,7 @@
                    , geo_levels = c(geo1, geo2)
                    , tax_levels = c("taxa", toi)
                    , time_levels = "year"
+                   , min_length = 2
                    , min_years = 0
                    , min_year = min(test_years$year)
                    , max_year = max(test_years$year)
@@ -95,10 +96,10 @@
 
       pwalk(list(todo$taxa[!todo$done]
                  , todo$data[!todo$done]
+                 , todo$out_file[!todo$done]
                  )
             , make_rr_model
             , geo_cols = c(geo1, geo2)
-            , out_path = out_dir
             , chains = if(testing) test_chains else use_chains
             , iter = if(testing) test_iter else use_iter
             )

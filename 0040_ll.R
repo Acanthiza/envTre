@@ -12,6 +12,7 @@
                    , geo_levels = c(geo1, geo2)
                    , tax_levels = c("taxa", toi)
                    , time_levels = "year"
+                   , min_length = 2
                    , min_years = 0
                    , min_year = min(test_years$year)
                    , max_year = max(test_years$year)

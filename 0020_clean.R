@@ -24,6 +24,7 @@
   #---------make taxonomy--------
 
   # generates two dataframes: lutaxa and taxa_taxonomy
+
   make_taxa_taxonomy(df = bio_all
                      , taxa_col = "original_name"
                      , ind_col = "ind"
@@ -32,7 +33,6 @@
                      , king = "Animalia"
                      , get_common = TRUE
                      )
-
 
 
   #--------Filter AOI-------
@@ -45,7 +45,8 @@
 
 
   bio_time <- bio_aoi %>%
-    dplyr::filter(year > min_year)
+    dplyr::filter(year > min_year) %>%
+    add_time_stamp()
 
 
   #---------Get cell numbers----------
@@ -56,14 +57,22 @@
                               , bio_time
                               , add_xy = TRUE
                               ) %>%
-    dplyr::rename(grid_s = cell) %>%
+    dplyr::rename(grid_s = cell
+                  , ras_x_s = ras_x
+                  , ras_y_s = ras_y
+                  ) %>%
     dplyr::mutate(long_s = long
                   , lat_s = lat
                   ) %>%
     add_raster_cell(aoi_grid_l
+                    , x = "long_s"
+                    , y =  "lat_s"
                     , .
                     ) %>%
-    dplyr::rename(grid_l = cell) %>%
+    dplyr::rename(grid_l = cell
+                  , ras_x_l = ras_x
+                  , ras_y_l = ras_y
+                  ) %>%
     dplyr::filter(!is.na(across(contains("grid")))) %>%
     add_time_stamp()
 
@@ -110,6 +119,7 @@
                                                  , survey_nr = include_survey_nr
                                                  )
                               ) %>%
+    dplyr::filter(is.na(rel_dist) | rel_dist < use_extra_rel_dist) %>%
     add_time_stamp()
 
 
@@ -122,7 +132,7 @@
                           , taxa_col = "original_name"
                           , context = visit_cols
                           , extra_cols = NULL
-                          , target_rank = "species"
+                          , target_rank = rank_to_target
                           , poor = species_filt
                           , save_gbif_file = fs::path("out","luGBIF.feather")
                           , king_for_taxa = "Animalia"
@@ -142,14 +152,9 @@
   #---------Geo context---------
 
   cells_geo <- bio_single %>%
-    dplyr::distinct(across(contains("grid"))) %>%
-    dplyr::bind_cols(as_tibble(raster::xyFromCell(aoi_grid_s
-                                                  , .$grid_s
-                                                  )
-                               )
-                     ) %>%
-    sf::st_as_sf(coords = c("x", "y")
-                 , crs = st_crs(aoi_grid_s)
+    dplyr::distinct(lat, long, across(contains("grid"))) %>%
+    sf::st_as_sf(coords = c("long", "lat")
+                 , crs = 4283
                  ) %>%
     st_transform(crs = st_crs(ibra_sub_aoi)) %>%
     sf::st_intersection(ibra_sub_aoi) %>%
@@ -162,14 +167,29 @@
     add_time_stamp()
 
 
+  #-------Clean contexts--------
+
+  all_contexts <- c(visit_cols, taxa_cols)
+
+  bio_NA <- bio_geo %>%
+    dplyr::filter(across(any_of(all_contexts)
+                         , ~ !is.na(.x)
+                         )
+                  ) %>%
+    add_time_stamp()
+
+
   #----------Effort---------
 
-  effort_mod <- make_effort_mod_cat(bio_geo
-                                    , context = visit_cols
-                                    , cat_cols = c(geo2, toi)
-                                    , iter = if(testing) test_iter else use_iter
-                                    , chains = if(testing) test_chains else use_chains
-                                    )
+  effort_mod <- make_effort_mod(bio_NA
+                                , context = visit_cols
+                                , cat_cols = c(geo2, toi)
+                                , iter = good_iter
+                                , chains = good_chains
+                                , threshold_lo = extreme_sr_lo
+                                , threshold_hi = extreme_sr_hi
+                                )
+
 
   bio_effort <- bio_geo %>%
     dplyr::inner_join(effort_mod$mod_cell_result) %>%
@@ -260,5 +280,5 @@
     dplyr::select(where(negate(is.list)), pair) %>%
     tidyr::unnest(cols = c(pair)) %>%
     dplyr::filter(p_gt < 0.05) %>%
-    dplyr::select(any_of(visit_cols), sp1_name, sp2_name)
+    dplyr::select(any_of(visit_cols), sp1_name, sp2_name, sp1_inc, sp2_inc, obs_cooccur, p_gt)
 

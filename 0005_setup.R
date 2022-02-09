@@ -28,6 +28,7 @@
                             , "envImport"
                             , "envClean"
                             , "envTrend"
+                            , "envRaster"
                             )
                           )
                    )
@@ -113,10 +114,19 @@
 
   #----------Maps-----------
 
-  # State map
-  out_file <- path("out","shp","sa.shp")
+  tmap::tmap_mode("view")
 
-  if(!file.exists(out_file)) {
+  tmap::tmap_options(basemaps = c("OpenStreetMap.Mapnik"
+                                  , "Esri.WorldImagery"
+                                  )
+                     , limits = c(facets.plot = 100)
+                     )
+
+
+  # State map
+  outfile <- path("out","shp","sa.shp")
+
+  if(!file.exists(outfile)) {
 
     st_read(path("data","shp","aust_cd66states.shp")
             , crs = 4326
@@ -124,36 +134,32 @@
             ) %>%
       dplyr::filter(STE == 4) %>%
       dplyr::mutate(State = "SA") %>%
-      st_transform(crs = 3577) %>%
-      st_write(out_file
-               , append = FALSE
-               )
+      st_transform(crs = use_epsg) %>%
+      st_write(outfile)
 
   }
 
-  sa <- sf::st_read(out_file)
+  sa <- sf::st_read(outfile)
 
 
   # LSA
-  out_file <- path("out","shp","LSA.shp")
+  outfile <- fs::path("out","shp","LSA.shp")
 
-  if(!file.exists(out_file)) {
+  if(!file.exists(outfile)) {
 
     st_read(path("data","shp","LSA.shp")
-                 , quiet = TRUE
-                 ) %>%
+            , quiet = TRUE
+    ) %>%
       as_tibble() %>%
       dplyr::mutate(across(where(is.character),~gsub("Wilur|Wilu\\?",paste0("Wilu","\u1E5F"),.))) %>%
       st_as_sf() %>%
-      st_transform(crs = 3577) %>%
+      st_transform(crs = use_epsg) %>%
       dplyr::left_join(lulsa) %>%
-      sf::st_write(out_file
-                   , append = FALSE
-                   )
+      sf::st_write(outfile, append = FALSE)
 
   }
 
-  lsa <- sf::st_read(out_file) %>%
+  lsa <- sf::st_read(outfile) %>%
     dplyr::mutate(across(where(is.character),~gsub("Wilur|Wilu\\?",paste0("Wilu","\u1E5F"),.)))
 
 
@@ -162,19 +168,23 @@
     dplyr::pull(colour, name = "REGION")
 
   # IBRA Sub
-  out_file <- path("out","shp","ibra_sub.shp")
+  outfile <- path("out","shp","ibra_sub.shp")
 
-  if(!file.exists(out_file)) {
+  if(!file.exists(outfile)) {
 
     st_read(path("data","shp","LANDSCAPE_IbraSubregionAust70.shp")) %>%
-      sf::st_transform(crs = 3577) %>%
+      sf::st_transform(crs = use_epsg) %>%
       sf::st_filter(sa) %>%
       sf::st_make_valid() %>%
-      sf::st_write(out_file)
+      sf::st_write(outfile)
 
   }
 
-  ibra_sub <- sf::st_read(out_file)
+  ibra_sub <- sf::st_read(outfile)
+
+  lu_geo <- ibra_sub %>%
+    st_set_geometry(NULL) %>%
+    dplyr::distinct(IBRA_SUB_N,IBRA_SUB_C,IBRA_SUB_1,IBRA_REG_N,IBRA_REG_C,IBRA_REG_1)
 
 
   #---------AOI---------
@@ -186,12 +196,12 @@
                   )
 
   # base grid
-  aoi_grid_s <- raster(ext = round(extent(aoi), -3)
+  aoi_grid_s <- terra::rast(ext = round(extent(aoi), -3)
                       , resolution = grid_s_x
                       , crs = CRS(paste0("+init=epsg:",use_epsg))
                       )
 
-  aoi_grid_l <- raster(ext = extent(aoi_grid_s)
+  aoi_grid_l <- terra::rast(ext = round(extent(aoi), -3)
                       , resolution = grid_l_x
                       , crs = CRS(paste0("+init=epsg:",use_epsg))
                       )
@@ -215,6 +225,7 @@
     survey = c(NA, NA, "SURVEYNAME", "SURVEYNAME", NA, NA, NA, NA),
     ind = c("ISINDIGENOUS", "ISINDIGENOUS", "ISINDIGENOUSFLAG", "ISINDIGENOUSFLAG", NA, "Native_Introduced_original", NA, NA),
     rel_dist = c(NA, NA, "rel_dist", "rel_dist", NA, NA, NA, "coordinateUncertaintyInMeters"),
+    sens = c(NA, NA, NA, "DISTRIBNDESC", NA, NA, NA, NA),
     desc = c("Arid lands information systems"
              , "Bushland condition monitoring"
              , "Biological databases of South Australia"
@@ -226,7 +237,7 @@
              )
     ) %>%
     dplyr::mutate(data_name = fct_reorder(data_name, order)) %>%
-    dplyr::filter(data_name == "BDBSA")
+    dplyr::filter(data_name %in% gsub("\\.r|code\\/","",fs::dir_ls("code")))
 
 
   #----------Clean----------
@@ -237,6 +248,9 @@
                      , "annual grass", "annual tussock grass", "no id"
                     , "bold:"
                      )
+
+  # Target rank
+  rank_to_target <- "species"
 
   num_filt <- c("0"
                 , "Not seen"
@@ -259,6 +273,8 @@
   use_cores <- if(parallel::detectCores() > max_cores) max_cores else parallel::detectCores()-1
 
   # Plan for any furrr functions
+  future::plan(sequential)
+
   future::plan(multisession
                , workers = use_cores
                )
