@@ -67,7 +67,7 @@
   #------Run models-------
 
   todo <- dat %>%
-    {if(testing) (.) %>% dplyr::filter(taxa %in% test_taxa$taxa) else (.)} %>%
+    {if(length(use_taxa) > 0) (.) %>% dplyr::filter(taxa %in% use_taxa) else (.)} %>%
     dplyr::mutate(out_file = fs::path(out_dir,paste0("occupancy_mod_",taxa,".rds"))
                   , done = map_lgl(out_file,file.exists)
                   )
@@ -75,32 +75,33 @@
 
   if(sum(!todo$done) > 0) {
 
-    if(sum(!todo$done) > use_cores/(if(testing) test_chains else use_chains)) {
+    if(sum(!todo$done) > use_cores / use_chains) {
 
       # Note each stan analysis is sequential (not 1 core per chain), as the
       # spawned analysis defaults to options(mc.cores = 1)
 
-      future_pwalk(list(todo$taxa[!todo$done]
+      furrr::future_pwalk(list(todo$taxa[!todo$done]
+                               , todo$data[!todo$done]
+                               , todo$out_file[!todo$done]
+                               )
+                          , make_occ_model
+                          , geo_cols = c(geo1, geo2)
+                          , chains = use_chains
+                          , iter = use_iter
+                          , .options = furrr_options(seed = TRUE)
+                          )
+
+    } else {
+
+      purrr::pwalk(list(todo$taxa[!todo$done]
                         , todo$data[!todo$done]
                         , todo$out_file[!todo$done]
                         )
                    , make_occ_model
                    , geo_cols = c(geo1, geo2)
-                   , chains = if(testing) test_chains else use_chains
-                   , iter = if(testing) test_iter else use_iter
+                   , chains = use_chains
+                   , iter = use_iter
                    )
-
-    } else {
-
-      pwalk(list(todo$taxa[!todo$done]
-                 , todo$data[!todo$done]
-                 , todo$out_file[!todo$done]
-                 )
-            , make_occ_model
-            , geo_cols = c(geo1, geo2)
-            , chains = if(testing) test_chains else use_chains
-            , iter = if(testing) test_iter else use_iter
-            )
 
     }
 
@@ -109,7 +110,7 @@
 
   #--------Explore models-----------
 
- mods_occ <- dat %>%
+  mods_occ <- dat %>%
     dplyr::mutate(data = fs::path(out_dir,paste0("occupancy_dat_",taxa,".rds"))
                   , mod_path = fs::path(out_dir,paste0("occupancy_mod_",taxa,".rds"))
                   ) %>%
@@ -120,19 +121,21 @@
 
   doof <- mods_occ
 
-  future_pwalk(list(doof$taxa
-                    , doof$common
-                    , doof$data
-                    , doof$mod_path
-                    , doof$type
-                    )
-               , explore_mod
-               , resp_var = "occ"
-               , exp_var = c(toi, geo2)
-               , max_levels = 30
-               , draws = 200
-               , post_groups = c("year", geo1, geo2)
-               , re_run = TRUE
-               )
+  furrr::future_pwalk(list(doof$taxa
+                           , doof$common
+                           , doof$data
+                           , doof$mod_path
+                           , doof$type
+                           )
+                      , explore_mod
+                      , resp_var = "occ"
+                      , exp_var = c(toi, geo2)
+                      , max_levels = 30
+                      , draws = 200
+                      , post_groups = c("year", geo1, geo2)
+                      , re_run = TRUE
+                      , tests = test_years
+                      , .options = furrr_options(seed = TRUE)
+                      )
 
 

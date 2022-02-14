@@ -66,7 +66,7 @@
 
   # Check if ll models have been run - run if not
   todo <- dat %>%
-    {if(testing) (.) %>% dplyr::filter(taxa %in% test_taxa$taxa) else (.)} %>%
+    {if(length(use_taxa) > 0) (.) %>% dplyr::filter(taxa %in% use_taxa) else (.)} %>%
     dplyr::mutate(out_file = fs::path(out_dir,paste0("list-length_mod_",taxa,".rds"))
                   , done = map_lgl(out_file
                                    , file.exists
@@ -75,32 +75,33 @@
 
   if(sum(!todo$done) > 0) {
 
-    if(sum(!todo$done) > use_cores/(if(testing) test_chains else use_chains)) {
+    if(sum(!todo$done) > use_cores / use_chains) {
 
       # Note each stan analysis is sequential (not 1 core per chain), as the
       # spawned analysis defaults to options(mc.cores = 1)
 
-      future_pwalk(list(todo$taxa[!todo$done]
+      furrr::future_pwalk(list(todo$taxa[!todo$done]
+                               , todo$data[!todo$done]
+                               , todo$out_file[!todo$done]
+                               )
+                          , make_ll_model
+                          , geo_cols = c(geo1, geo2)
+                          , chains = use_chains
+                          , iter = use_iter
+                          , .options = furrr_options(seed = TRUE)
+                          )
+
+    } else {
+
+      purrr::pwalk(list(todo$taxa[!todo$done]
                         , todo$data[!todo$done]
                         , todo$out_file[!todo$done]
                         )
                    , make_ll_model
                    , geo_cols = c(geo1, geo2)
-                   , chains = if(testing) test_chains else use_chains
-                   , iter = if(testing) test_iter else use_iter
+                   , chains = use_chains
+                   , iter = use_iter
                    )
-
-    } else {
-
-      pwalk(list(todo$taxa[!todo$done]
-                 , todo$data[!todo$done]
-                 , todo$out_file[!todo$done]
-                 )
-            , make_ll_model
-            , geo_cols = c(geo1, geo2)
-            , chains = if(testing) test_chains else use_chains
-            , iter = if(testing) test_iter else use_iter
-            )
 
     }
 
@@ -130,4 +131,6 @@
                , draws = 200
                , post_groups = c("year", geo1, geo2)
                , re_run = TRUE
+               , tests = test_years
+               , .options = furrr_options(seed = TRUE)
                )

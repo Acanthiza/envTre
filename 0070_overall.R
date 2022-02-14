@@ -1,4 +1,15 @@
 
+  calc_quants <- c(0.005
+                   , 0.025
+                   , 0.05
+                   , 0.25
+                   , 0.5
+                   , 0.75
+                   , 0.95
+                   , 0.975
+                   , 0.995
+                   )
+
   taxa_mods <- ls(pattern = "^mods_") %>%
     tibble::enframe(name = NULL, value = "obj") %>%
     dplyr::mutate(data = map(obj,get)) %>%
@@ -21,11 +32,11 @@
                    , taxa
                    , type
                    )
-  
+
   taxa_mods_overall <- taxa_mods %>%
-    dplyr::select(type,year_diff_df) %>%
+    dplyr::select(type, !!ensym(toi), year_diff_df) %>%
     tidyr::unnest(cols = c(year_diff_df)) %>%
-    tidyr::nest(data = -c(taxa, common)) %>%
+    tidyr::nest(data = -c(taxa, common, !!ensym(toi))) %>%
     dplyr::mutate(overall = pmap(list(taxa
                                       , common
                                       , data
@@ -36,4 +47,3 @@
                                                                 )
                                  )
                   )
-    

@@ -1,7 +1,7 @@
 
   red <- bio_tidy %>%
     tidyr::nest(data = -c(taxa,!!ensym(toi))) %>%
-    dplyr::mutate(dat_mat = map(data,~as.matrix(cbind(.$long,.$lat)))
+    dplyr::mutate(dat_mat = map(data, . %>% dplyr::select(long, lat) %>% as.matrix(ncol = 2))
                   , aoo = map_dbl(dat_mat, red::aoo)
                   , eoo = map_dbl(dat_mat, red::eoo)
                   )
@@ -62,7 +62,7 @@
   ep_aoo <- bio_tidy %>%
     dplyr::inner_join(eps) %>%
     tidyr::nest(data = -c(epoch, taxa,!!ensym(toi))) %>%
-    dplyr::mutate(dat_mat = map(data,~as.matrix(cbind(.$long,.$lat)))
+    dplyr::mutate(dat_mat = map(data, . %>% dplyr::select(long, lat) %>% as.matrix(ncol = 2))
                   , aoo = map_dbl(dat_mat, red::aoo)
                   #, eoo = map_dbl(dat_mat, red::eoo)
                   ) %>%
@@ -79,7 +79,7 @@
   ep_eoo <- bio_tidy %>%
     dplyr::inner_join(eps) %>%
     tidyr::nest(data = -c(epoch, taxa,!!ensym(toi))) %>%
-    dplyr::mutate(dat_mat = map(data,~as.matrix(cbind(.$long,.$lat)))
+    dplyr::mutate(dat_mat =map(data, . %>% dplyr::select(long, lat) %>% as.matrix(ncol = 2))
                   , eoo = map_dbl(dat_mat, red::eoo)
                   ) %>%
     dplyr::select(Negate(is.list)) %>%

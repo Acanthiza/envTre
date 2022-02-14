@@ -3,24 +3,20 @@
   
   if(nrow(gert::git_status() > 1)) {
     
-    git_commit_env(paste0(gsub("out\\/","",out_aoi),". ",basename(out_dir)))
+    git_commit_env(paste0(gsub("out\\/","",out_aoi),"_",basename(out_dir)))
     
   }
   
   
   #------To network-------
 
-  base_network_path <- path("//env.sa.gov.au/dfsroot/IST/DEHProjects/Landscapes/envEco")
+  base_network_path <- path("//env.sa.gov.au/dfsroot/IST/DEHProjects/Landscapes/envTre")
   to_network_path <- path(base_network_path,out_dir)
   
   latest_network <- path(dirname(to_network_path),paste0("latest"))
   latest_local <- path_wd(out_runs,paste0("latest"))
 
-  filesRegex <- c("gpkg$" # geopackage
-                  , "\\d{4}\\.tif$" # raster
-                  , "xml$"
-                  , "report.docx"
-                  , "ecosystemsDesc.csv"
+  filesRegex <- c("report.docx"
                   , "slides.html"
                   , "short.docx"
                   )
