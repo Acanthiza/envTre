@@ -3,7 +3,7 @@
   #-------Filter for analysis---------
 
   rr_lists <- bio_tidy %>%
-    add_list_length(context = visit_cols
+    add_list_length(context = context_rr
                     , create_list_col = TRUE
                     )
 
@@ -13,15 +13,14 @@
                    , tax_levels = c("taxa", toi)
                    , time_levels = "year"
                    , min_length = 2
-                   , min_years = 0
-                   , min_year = min(test_years$year)
-                   , max_year = max(test_years$year)
+                   , min_year = reference
+                   , max_year = recent
                    )
 
 
   #------Absences from cooccurs-------
 
-  rr_filt_absences <- rr_filt %>%
+  rr_absences <- rr_filt %>%
     # sp2_name are taxa that indicate absence
     dplyr::inner_join(taxa_cooccur %>%
                         dplyr::rename(taxa = sp2_name)
@@ -39,9 +38,9 @@
 
   #-------Data prep---------
 
-  rr_dat <- rr_filt_absences %>%
+  rr_dat <- rr_absences %>%
     dplyr::group_by(taxa
-                    , across(any_of(c(toi, "year", geo1, geo2, geo3)))
+                    , across(any_of(context_rr))
                     ) %>%
     dplyr::summarise(success = sum(p, na.rm = TRUE)
                      , trials = n()
@@ -55,8 +54,6 @@
     dplyr::filter(tot_records >= min_abs_sites) %>%
     dplyr::mutate(prop = success/trials) %>%
     tidyr::nest(data = -any_of(taxa_cols)) %>%
-    # dplyr::mutate(successes = map_dbl(data, ~sum(.$success))) %>%
-    # dplyr::filter(successes > min_abs_sites) %>%
     dplyr::left_join(taxa_taxonomy %>%
                        dplyr::select(taxa
                                      , common

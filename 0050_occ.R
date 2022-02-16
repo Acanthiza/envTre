@@ -3,7 +3,7 @@
   #-------Filter for analysis---------
 
   occ_lists <- bio_tidy %>%
-    add_list_length(context = visit_cols
+    add_list_length(context = context_occ
                     , create_list_col = TRUE
                     )
 
@@ -12,16 +12,15 @@
                    , geo_levels = c(geo1, geo2)
                    , tax_levels = c("taxa", toi)
                    , time_levels = "year"
-                   , min_length = 2
-                   , min_years = 0
-                   , min_year = min(test_years$year)
-                   , max_year = max(test_years$year)
+                   , min_length = 3
+                   , min_year = reference
+                   , max_year = recent
                    )
 
 
   #------Absences from cooccurs-------
 
-  occ_filt_absences <- occ_filt %>%
+  occ_absences <- occ_filt %>%
     # sp2_name are taxa that indicate absence
     dplyr::inner_join(taxa_cooccur %>%
                         dplyr::rename(taxa = sp2_name)
@@ -39,7 +38,7 @@
 
   #-------Data prep---------
 
-  dat <- occ_filt_absences %>%
+  occ_dat <- occ_absences %>%
     dplyr::group_by(taxa
                     , across(any_of(c(toi, "year", geo1, geo2, geo3, geo4)))
                     ) %>%
@@ -66,7 +65,7 @@
 
   #------Run models-------
 
-  todo <- dat %>%
+  todo <- occ_dat %>%
     {if(length(use_taxa) > 0) (.) %>% dplyr::filter(taxa %in% use_taxa) else (.)} %>%
     dplyr::mutate(out_file = fs::path(out_dir,paste0("occupancy_mod_",taxa,".rds"))
                   , done = map_lgl(out_file,file.exists)
@@ -110,7 +109,7 @@
 
   #--------Explore models-----------
 
-  mods_occ <- dat %>%
+  mods_occ <- occ_dat %>%
     dplyr::mutate(data = fs::path(out_dir,paste0("occupancy_dat_",taxa,".rds"))
                   , mod_path = fs::path(out_dir,paste0("occupancy_mod_",taxa,".rds"))
                   ) %>%

@@ -3,7 +3,7 @@
   #-------Filter for analysis---------
 
   ll_lists <- bio_tidy %>%
-    add_list_length(context = visit_cols
+    add_list_length(context = context_ll
                     , create_list_col = TRUE
                     )
 
@@ -13,15 +13,14 @@
                    , tax_levels = c("taxa", toi)
                    , time_levels = "year"
                    , min_length = 2
-                   , min_years = 0
-                   , min_year = min(test_years$year)
-                   , max_year = max(test_years$year)
+                   , min_year = reference
+                   , max_year = recent
                    )
 
 
   #------Absences from cooccurs-------
 
-  ll_filt_absences <- ll_filt %>%
+  ll_absences <- ll_filt %>%
     # sp2_name are taxa that indicate absence
     dplyr::inner_join(taxa_cooccur %>%
                         dplyr::rename(taxa = sp2_name)
@@ -39,7 +38,7 @@
 
   #-------Data prep---------
 
-  dat <- ll_filt_absences %>%
+  ll_dat <- ll_absences %>%
     dplyr::mutate(success = p
                   , trials = 1
                   ) %>%
@@ -65,7 +64,7 @@
   #------Run models-------
 
   # Check if ll models have been run - run if not
-  todo <- dat %>%
+  todo <- ll_dat %>%
     {if(length(use_taxa) > 0) (.) %>% dplyr::filter(taxa %in% use_taxa) else (.)} %>%
     dplyr::mutate(out_file = fs::path(out_dir,paste0("list-length_mod_",taxa,".rds"))
                   , done = map_lgl(out_file
@@ -111,7 +110,7 @@
 
   #--------Explore models-----------
 
-  mods_ll <- dat %>%
+  mods_ll <- ll_dat %>%
     dplyr::mutate(mod_path = fs::path(out_dir,paste0("list-length_mod_",taxa,".rds"))) %>%
     dplyr::filter(file.exists(mod_path)) %>%
     dplyr::mutate(type = "List length")

@@ -97,7 +97,8 @@
                   dplyr::filter(!is.na(eventDate)
                                 , !is.na(decimalLatitude)
                                 , !is.na(decimalLongitude)
-                                , !is.na(scientificName)
+                                , !is.na(species)
+                                , species != ""
                                 )
                 , out_file
                 )

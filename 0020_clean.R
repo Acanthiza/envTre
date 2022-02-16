@@ -61,21 +61,18 @@
                                 , bio_time
                                 , add_xy = TRUE
                                 ) %>%
-      dplyr::rename(grid_s = cell
-                    , ras_x_s = ras_x
-                    , ras_y_s = ras_y
-                    ) %>%
+      dplyr::rename(grid_s = cell) %>%
       dplyr::mutate(long_s = long
                     , lat_s = lat
                     ) %>%
       add_raster_cell(aoi_grid_l
-                      , x = "long_s"
-                      , y =  "lat_s"
                       , .
+                      , x = "long"
+                      , y =  "lat"
                       ) %>%
       dplyr::rename(grid_l = cell
-                    , ras_x_l = ras_x
-                    , ras_y_l = ras_y
+                    , long = long_s
+                    , lat = lat_s
                     ) %>%
       dplyr::filter(!is.na(across(contains("grid")))) %>%
       add_time_stamp()
@@ -103,9 +100,10 @@
                             , context = visit_cols
                             , extra_cols = NULL
                             , target_rank = rank_to_target
-                            , poor = species_filt
-                            , save_gbif_file = fs::path("out","luGBIF.feather")
-                            , king_for_taxa = "Animalia"
+                            , poor_filt = species_filt
+                            , save_luGBIF = fs::path("out","luGBIF.feather")
+                            , king = "Animalia"
+                            , get_common = TRUE
                             ) %>%
       dplyr::filter(grepl(paste0(filt_toi, collapse = "|"), !!ensym(toi))) %>%
       add_time_stamp()

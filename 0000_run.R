@@ -103,24 +103,24 @@
   latlon_epsg <- 4283
 
   # Geo
-  grid_s_x <- 1000
-  grid_l_x <- 10000
-
-  location_cols <- c("lat", "long")
-
   geo1 <- "IBRA_REG_N"
   geo2 <- "IBRA_SUB_N"
   geo3 <- "grid_l" # large cell
   geo4 <- "grid_s" # small cell
 
-  geo_cols <- c(location_cols, unlist(mget(ls(pattern = "geo\\d{1}"))))
+  geo_cols <- c(unlist(mget(ls(pattern = "geo\\d{1}"))))
+
+  grid_s_x <- 1000
+  grid_l_x <- 10000
+
+  location_cols <- c("lat", "long")
 
   # Time
   time_cols <- c("year")
 
 
   # Visit
-  visit_cols <- c(time_cols, toi, unname(geo_cols))
+  visit_cols <- c(time_cols, toi, unname(geo_cols), location_cols)
 
 
   # Taxa
@@ -133,7 +133,15 @@
     cooccur_within <- c(toi, geo1, geo2)
 
     # at
-    cooccur_at <- c(toi, geo3, geo4)
+    cooccur_at <- c(toi, geo3)
+
+
+  # Context cols
+  context_rr <- c(time_cols, toi, unname(geo_cols[-length(geo_cols)]))
+
+  context_ll <- c(time_cols, toi, unname(geo_cols[-length(geo_cols)]))
+
+  context_occ <- c(time_cols, toi, unname(geo_cols))
 
 
   # All

@@ -70,7 +70,7 @@
     date = c("SurveyDate", "ASSESSMENT_DATE", "VISITDATE", "SIGHTINGDATE", "date", "date", "visit_start_date", "eventDate"),
     lat = c("LATITUDE", "LATITUDE", "LATITUDE", "LATITUDE", "lat", "LATITUDE", "latitude", "decimalLatitude"),
     long = c("LONGITUDE", "LONGITUDE", "LONGITUDE", "LONGITUDE", "lon", "LONGITUDE", "longitude", "decimalLongitude"),
-    original_name = c("SPECIES", "SPECIES", "SPECIES", "SPECIES", "Spp", "SPECIES", "herbarium_determination", "scientificName"),
+    original_name = c("SPECIES", "SPECIES", "SPECIES", "SPECIES", "Spp", "SPECIES", "herbarium_determination", "species"),
     nsx = c("NSXCODE", "NSXCODE", "NSXCODE", "NSXCODE", NA, "NSXCODE", NA, "organismID"),
     number = c(NA, NA, "NUMOBSERVED","NUMOBSERVED", NA, NA, NA, NA),
     survey_nr = c(NA, NA, "SURVEYNR", "SURVEYNR", NA, NA, NA, NA),

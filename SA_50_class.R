@@ -16,7 +16,7 @@
 
   toi <- "class"
 
-  filt_toi <- "Aves"
+  filt_toi <- c("Aves", "Mammalia")
 
   # Years at which to predict (and compare change)
   reference <- 2010
@@ -24,7 +24,7 @@
 
 
   # Which files to source?
-  run_from <- 70
+  run_from <- 0
   run_to <- 100
 
   source("0000_run.R")

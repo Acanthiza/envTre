@@ -35,6 +35,8 @@
 
 
   spp <- c(NULL
+
+          # Birds
           #, "Melithreptus gularis"
           #, "Melithreptus lunatus"
           #, "Amytornis striatus"
@@ -45,6 +47,10 @@
           #, "Melanodryas cucullata"
           #, "Climacteris picumnus"
           #, "Lophochroa leadbeateri"
+
+
+          # Mammals
+          # , "Wallabia bicolor"
           )
 
 
