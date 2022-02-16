@@ -2,7 +2,7 @@
 
   # Totally new run?
   # Can be T (new), F (use last) or provide out_dir (e.g. "2021-11-22-1543")
-  new_run <- "2022-02-14-1456"
+  new_run <- T
 
   # What is the area of interest (AOI) for this analysis?
 
@@ -19,8 +19,9 @@
   filt_toi <- c("Aves", "Mammalia")
 
   # Years at which to predict (and compare change)
-  reference <- 2010
-  recent <- 2020
+  recent <- as.numeric(format(Sys.time(), "%Y")) - 5
+  reference <- recent - 10
+
 
 
   # Which files to source?
